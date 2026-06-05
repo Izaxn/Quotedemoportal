@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HVAC Quote Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;900&family=Barlow+Condensed:wght@600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:#0d1b2a;--navy-mid:#162032;--navy-light:#1e2e42;--navy-border:#2a3f58;
+    --orange:#f07820;--orange-dark:#c45e0f;--steel:#8ea8c3;--steel-light:#c4d4e3;
+    --white:#f5f8fb;--muted:#6b8299;--danger:#e04444;--success:#2daa6e;
+    --font:'Barlow',sans-serif;--font-cond:'Barlow Condensed',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--navy);color:var(--white);min-height:100vh;font-size:15px;}
+
+  .topbar{background:var(--navy-mid);border-bottom:2px solid var(--orange);padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
+  .topbar-brand{font-family:var(--font-cond);font-size:20px;font-weight:900;letter-spacing:2px;text-transform:uppercase;}
+  .topbar-brand span{color:var(--orange);}
+  .topbar-actions{display:flex;gap:8px;}
+
+  .steps-nav{background:var(--navy-mid);border-bottom:1px solid var(--navy-border);display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .steps-nav::-webkit-scrollbar{display:none;}
+  .step-tab{padding:12px 14px;font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .step-tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+  .step-tab.done{color:var(--success);}
+  .step-num{width:18px;height:18px;border-radius:50%;background:var(--navy-light);border:1px solid var(--navy-border);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+  .step-tab.active .step-num{background:var(--orange);border-color:var(--orange);color:var(--navy);}
+  .step-tab.done .step-num{background:var(--success);border-color:var(--success);color:var(--navy);}
+
+  .main{max-width:1100px;margin:0 auto;padding:20px 12px 80px;}
+  .panel{display:none;animation:fadeIn 0.25s ease;}
+  .panel.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  .panel-title{font-family:var(--font-cond);font-size:24px;font-weight:900;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+  .panel-title span{color:var(--orange);}
+  .panel-sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
+
+  .card{background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:8px;padding:16px;margin-bottom:16px;}
+  .card-title{font-family:var(--font-cond);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .card-title::after{content:'';flex:1;height:1px;background:var(--navy-border);}
+
+  .note-box{background:rgba(142,168,195,0.07);border:1px solid var(--navy-border);border-left:3px solid var(--steel);border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--steel-light);line-height:1.6;}
+  .note-box strong{color:var(--white);display:block;margin-bottom:4px;}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+  @media(max-width:600px){.form-grid,.form-grid.cols3{grid-template-columns:1fr;}.form-group.span2,.form-group.span3{grid-column:span 1;}}
+  .form-group{display:flex;flex-direction:column;gap:5px;}
+  .form-group.span2{grid-column:span 2;}
+  @media(max-width:600px){.form-group.span2{grid-column:span 1;}}
+  label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  input[type="text"],input[type="number"],input[type="email"],input[type="tel"],input[type="date"],select,textarea{background:var(--navy-light);border:1px solid var(--navy-border);border-radius:6px;padding:9px 12px;color:var(--white);font-family:var(--font);font-size:14px;outline:none;transition:border-color 0.2s;width:100%;}
+  input:focus,select:focus,textarea:focus{border-color:var(--orange);}
+  input::placeholder,textarea::placeholder{color:var(--muted);opacity:0.6;}
+  select option{background:var(--navy-light);}
+  textarea{resize:vertical;min-height:80px;line-height:1.5;}
+
+  .logo-upload{border:2px dashed var(--navy-border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;position:relative;}
+  .logo-upload:hover{border-color:var(--orange);}
+  .logo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .logo-preview{max-height:60px;max-width:180px;object-fit:contain;margin:0 auto 8px;display:block;}
+  .logo-placeholder{color:var(--muted);font-size:13px;}
+
+  .btn{padding:9px 18px;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.18s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--orange);color:var(--navy);}
+  .btn-primary:hover{background:var(--orange-dark);}
+  .btn-secondary{background:transparent;color:var(--steel-light);border:1px solid var(--navy-border);}
+  .btn-secondary:hover{border-color:var(--steel);background:var(--navy-light);}
+  .btn-ghost{background:transparent;color:var(--orange);border:1px dashed var(--orange);font-size:13px;padding:7px 14px;}
+  .btn-ghost:hover{background:rgba(240,120,32,0.08);}
+  .btn-danger-ghost{background:transparent;color:var(--danger);border:none;padding:4px 6px;font-size:12px;font-weight:700;cursor:pointer;}
+  .btn-sm{padding:7px 12px;font-size:12px;}
+  .btn-lg{padding:12px 24px;font-size:15px;font-weight:700;}
+
+  /* SCROLLABLE TABLE WRAPPER */
+  .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .line-table{width:100%;border-collapse:collapse;min-width:650px;}
+  .line-table th{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 8px;text-align:left;border-bottom:1px solid var(--navy-border);white-space:nowrap;}
+  .line-table td{padding:5px 5px;vertical-align:middle;border-bottom:1px solid rgba(42,63,88,0.4);}
+  .line-table td input,.line-table td select{padding:6px 8px;font-size:13px;}
+  .line-table tr:last-child td{border-bottom:none;}
+  .line-total{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--white);text-align:right;padding-right:8px;min-width:80px;white-space:nowrap;}
+
+  .section-total{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:10px 0 0;margin-top:8px;border-top:1px solid var(--navy-border);}
+  .section-total-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .section-total-value{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--orange);min-width:100px;text-align:right;}
+
+  .totals-card{background:var(--navy-light);border:1px solid var(--navy-border);border-radius:8px;overflow:hidden;}
+  .totals-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--navy-border);font-size:14px;}
+  .totals-row:last-child{border-bottom:none;}
+  .totals-row.grand{background:var(--orange);color:var(--navy);font-size:18px;font-family:var(--font-cond);font-weight:900;padding:14px 16px;}
+  .totals-label{color:var(--steel-light);}
+  .totals-value{font-family:var(--font-mono);font-weight:500;}
+  .totals-row.grand .totals-label,.totals-row.grand .totals-value{color:var(--navy);}
+  .markup-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--navy-border);font-size:14px;}
+  .markup-row label{color:var(--steel-light);flex:1;margin:0;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;}
+  .markup-row input{width:65px;flex:none;}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(42,63,88,0.4);}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-label{font-size:14px;color:var(--steel-light);}
+  .toggle-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .toggle{position:relative;width:42px;height:22px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--navy-border);border-radius:22px;cursor:pointer;transition:0.2s;}
+  .slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:var(--white);border-radius:50%;transition:0.2s;}
+  .toggle input:checked+.slider{background:var(--orange);}
+  .toggle input:checked+.slider::before{transform:translateX(20px);}
+
+  .nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--navy-border);flex-wrap:wrap;gap:10px;}
+
+  .totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){.totals-grid{grid-template-columns:1fr;}}
+
+  /* MODAL */
+  #previewModal{display:none;position:fixed;inset:0;background:rgba(10,18,28,0.95);z-index:999;overflow-y:auto;padding:16px;}
+  #previewModal.open{display:block;}
+  .preview-wrap{max-width:820px;margin:0 auto;}
+  .preview-toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+
+  /* QUOTE DOC */
+  .quote-doc{background:#fff;color:#1a1a1a;border-radius:6px;overflow:hidden;font-family:var(--font);}
+  .quote-header{background:#0d1b2a;padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;}
+  .quote-logo-area{flex:1;min-width:140px;}
+  .quote-logo-area img{max-height:55px;max-width:160px;object-fit:contain;}
+  .quote-logo-text{font-family:var(--font-cond);font-size:20px;font-weight:900;color:#fff;letter-spacing:1px;text-transform:uppercase;}
+  .quote-co-details{font-size:11px;color:#8ea8c3;margin-top:6px;line-height:1.7;}
+  .quote-title-block{text-align:right;}
+  .quote-title-block h1{font-family:var(--font-cond);font-size:34px;font-weight:900;color:#f07820;letter-spacing:2px;text-transform:uppercase;line-height:1;margin-bottom:6px;}
+  .quote-meta-item{font-size:12px;color:#8ea8c3;}
+  .quote-meta-item strong{color:#fff;}
+  .quote-client-bar{background:#f07820;padding:12px 28px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+  .qcb-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#7a3800;margin-bottom:2px;}
+  .qcb-value{font-size:13px;font-weight:600;color:#0d1b2a;}
+  .quote-body{padding:24px 28px;}
+  .quote-section-head{font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0d1b2a;border-bottom:2px solid #0d1b2a;padding-bottom:5px;margin:20px 0 12px;}
+  .quote-section-head:first-child{margin-top:0;}
+  .qt{width:100%;border-collapse:collapse;font-size:12px;}
+  .qt thead{background:#f0f3f7;}
+  .qt th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b8299;}
+  .qt td{padding:8px 10px;border-bottom:1px solid #e8edf3;font-size:12px;color:#1a1a1a;}
+  .qt tr:last-child td{border-bottom:none;}
+  .qt .num{text-align:right;font-family:var(--font-mono);font-size:11px;}
+  .qt tr:nth-child(even) td{background:#fafbfc;}
+  .qt-totals{margin-top:16px;display:flex;flex-direction:column;align-items:flex-end;}
+  .qt-total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid #e8edf3;width:260px;}
+  .qt-total-row:last-child{border-bottom:none;}
+  .qt-total-row .lbl{color:#6b8299;}
+  .qt-total-row .val{font-family:var(--font-mono);font-weight:500;}
+  .qt-grand{background:#0d1b2a;color:#fff;border-radius:6px;padding:10px 16px;display:flex;justify-content:space-between;width:260px;margin-top:8px;font-family:var(--font-cond);font-size:16px;font-weight:900;letter-spacing:0.5px;}
+  .qt-grand .val{color:#f07820;font-family:var(--font-mono);font-size:14px;font-weight:700;}
+  .quote-scope{background:#f8f9fb;border-left:3px solid #f07820;padding:12px 14px;border-radius:0 6px 6px 0;font-size:12px;line-height:1.7;color:#333;margin:10px 0;white-space:pre-wrap;}
+  .quote-terms{font-size:11px;color:#888;line-height:1.7;margin-top:20px;}
+  .quote-terms strong{color:#555;}
+  .quote-validity{background:#fff8f0;border:1px solid #fde8d4;border-radius:6px;padding:9px 14px;font-size:12px;color:#a05010;margin-top:14px;}
+  .quote-sig{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:32px;padding-top:16px;border-top:1px solid #e0e0e0;}
+  .sig-line{border-bottom:1px solid #1a1a1a;height:36px;margin-bottom:5px;}
+  .sig-label{font-size:10px;color:#888;letter-spacing:0.5px;}
+  .quote-footer{background:#f0f3f7;padding:12px 28px;font-size:10px;color:#8ea8c3;text-align:center;border-top:2px solid #0d1b2a;}
+
+  /* POLICY SECTION */
+  .policy-section{margin-top:8px;}
+  .policy-block{background:rgba(142,168,195,0.06);border:1px solid var(--navy-border);border-radius:6px;margin-bottom:10px;overflow:hidden;}
+  .policy-block-head{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:rgba(142,168,195,0.04);}
+  .policy-block-head:hover{background:rgba(142,168,195,0.09);}
+  .policy-block-title{font-size:13px;font-weight:600;color:var(--steel-light);}
+  .policy-block-body{padding:0 14px 14px;font-size:13px;color:var(--steel);line-height:1.7;display:none;}
+  .policy-block-body.open{display:block;}
+  .policy-chevron{font-size:11px;color:var(--muted);transition:transform 0.2s;}
+  .policy-chevron.open{transform:rotate(180deg);}
+  .policy-textarea{width:100%;margin-top:8px;background:var(--navy-light);border:1px solid var(--navy-border);border-radius:6px;padding:10px 12px;color:var(--white);font-family:var(--font);font-size:13px;line-height:1.6;resize:vertical;min-height:100px;outline:none;}
+  .policy-textarea:focus{border-color:var(--orange);}
+  .policy-hint{font-size:12px;color:var(--muted);margin-bottom:6px;font-style:italic;}
+
+  /* SHARE BUTTONS */
+  .share-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+
+  @media print{
+    body{background:#fff !important;}
+    .topbar,.steps-nav,.main,.preview-toolbar{display:none !important;}
+    #previewModal{display:block !important;background:#fff !important;padding:0 !important;position:static !important;overflow:visible !important;}
+    .preview-wrap{max-width:100% !important;margin:0 !important;}
+    .quote-doc{border-radius:0 !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">HVAC<span>Quote</span> Pro</div>
+  <div class="topbar-actions">
+    <button class="btn btn-secondary btn-sm" onclick="clearAll()">↺ New</button>
+    <button class="btn btn-primary btn-sm" onclick="openPreview()">⬡ Preview</button>
+  </div>
+</div>
+
+<div class="steps-nav">
+  <div class="step-tab active" onclick="goTo(0)" id="tab0"><span class="step-num">1</span> Company</div>
+  <div class="step-tab" onclick="goTo(1)" id="tab1"><span class="step-num">2</span> Client</div>
+  <div class="step-tab" onclick="goTo(2)" id="tab2"><span class="step-num">3</span> Labor</div>
+  <div class="step-tab" onclick="goTo(3)" id="tab3"><span class="step-num">4</span> Equipment</div>
+  <div class="step-tab" onclick="goTo(4)" id="tab4"><span class="step-num">5</span> Materials</div>
+  <div class="step-tab" onclick="goTo(5)" id="tab5"><span class="step-num">6</span> Fees</div>
+  <div class="step-tab" onclick="goTo(6)" id="tab6"><span class="step-num">7</span> Totals</div>
+  <div class="step-tab" onclick="goTo(7)" id="tab7"><span class="step-num">8</span> Policies</div>
+</div>
+
+<div class="main">
+
+<!-- PANEL 0: COMPANY -->
+<div class="panel active" id="panel0">
+  <div class="panel-title">Your <span>Company</span></div>
+  <div class="panel-sub">This info appears on every quote. Fill once and reuse.</div>
+  <div class="card">
+    <div class="card-title">Company Identity</div>
+    <div class="note-box"><strong>💡 Why this matters</strong>Your company details appear at the top of every quote. A complete profile (logo, license, insurance) builds client trust and looks professional.</div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Company Logo</label>
+      <div class="logo-upload" id="logoUploadArea">
+        <input type="file" accept="image/*" onchange="handleLogo(this)"/>
+        <img id="logoPreview" class="logo-preview" style="display:none"/>
+        <div class="logo-placeholder" id="logoPlaceholder">📷 Tap to upload logo (PNG, JPG, SVG)</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Company Name *</label><input type="text" id="co_name" placeholder="Apex Mechanical HVAC LLC"/></div>
+      <div class="form-group"><label>License / Contractor #</label><input type="text" id="co_license" placeholder="LIC-045821"/></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="co_phone" placeholder="(555) 400-7890"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="co_email" placeholder="quotes@apexmechanical.com"/></div>
+      <div class="form-group span2"><label>Street Address</label><input type="text" id="co_address" placeholder="1200 Industrial Blvd, Suite 4, Houston TX 77040"/></div>
+      <div class="form-group"><label>Website (optional)</label><input type="text" id="co_website" placeholder="www.apexmechanical.com"/></div>
+      <div class="form-group"><label>Insurance Policy #</label><input type="text" id="co_insurance" placeholder="GL-2024-998877"/></div>
+    </div>
+  </div>
+  <div class="nav-row"><div style="color:var(--muted);font-size:13px">Step 1 of 8</div><button class="btn btn-primary btn-lg" onclick="goTo(1)">Next: Client →</button></div>
+</div>
+
+<!-- PANEL 1: CLIENT -->
+<div class="panel" id="panel1">
+  <div class="panel-title">Client &amp; <span>Job Info</span></div>
+  <div class="panel-sub">Who is this quote for and what's the job?</div>
+  <div class="card">
+    <div class="card-title">Client Details</div>
+    <div class="note-box"><strong>💡 Client info tip</strong>Include the contact person and email — quotes sent directly to a named person get responded to faster than generic ones.</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Client / Company Name *</label><input type="text" id="cl_name" placeholder="Sunset Properties LLC"/></div>
+      <div class="form-group"><label>Contact Person</label><input type="text" id="cl_contact" placeholder="James Whitfield"/></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="cl_phone" placeholder="(555) 210-3344"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="cl_email" placeholder="james@sunsetprop.com"/></div>
+      <div class="form-group span2"><label>Billing Address</label><input type="text" id="cl_billing" placeholder="400 Commerce Drive, Dallas TX 75201"/></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Job Details</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Quote Number</label><input type="text" id="job_number" placeholder="QT-2024-0042"/></div>
+      <div class="form-group"><label>Quote Date</label><input type="date" id="job_date"/></div>
+      <div class="form-group"><label>Job Type</label>
+        <select id="job_type"><option>New Installation</option><option>System Replacement</option><option>Repair / Service</option><option>Maintenance Contract</option><option>Ductwork</option><option>Refrigeration</option><option>Commercial Build-Out</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label>Priority</label>
+        <select id="job_priority"><option>Standard</option><option>Urgent</option><option>Emergency</option></select>
+      </div>
+      <div class="form-group span2"><label>Job Site Address</label><input type="text" id="job_site" placeholder="1800 Riverside Ave, Houston TX 77002"/></div>
+      <div class="form-group"><label>Property Type</label>
+        <select id="job_property"><option>Residential – Single Family</option><option>Residential – Multi-Unit</option><option>Commercial – Office</option><option>Commercial – Retail</option><option>Commercial – Warehouse</option><option>Industrial</option><option>New Construction</option></select>
+      </div>
+      <div class="form-group"><label>Sq. Footage</label><input type="number" id="job_sqft" placeholder="2400" min="0"/></div>
+      <div class="form-group span2"><label>Scope of Work / Description</label><textarea id="job_scope" placeholder="Describe the full scope: system removal, installation, zones, known challenges, access issues, etc."></textarea></div>
+      <div class="form-group"><label>Estimated Start</label><input type="date" id="job_start"/></div>
+      <div class="form-group"><label>Estimated Completion</label><input type="date" id="job_end"/></div>
+    </div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(0)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(2)">Next: Labor →</button></div>
+</div>
+
+<!-- PANEL 2: LABOR -->
+<div class="panel" id="panel2">
+  <div class="panel-title">Team &amp; <span>Labor</span></div>
+  <div class="panel-sub">Add each worker, role, hours, and rate. Totals auto-calculate.</div>
+  <div class="card">
+    <div class="card-title">Labor Breakdown</div>
+    <div class="note-box"><strong>💡 How labor pricing works</strong>Enter the number of workers, their regular hours, and hourly rate. If overtime applies (usually hours over 8/day or 40/week), add OT hours and the OT rate (typically 1.5× regular). The line total calculates automatically: (Workers × Hours × Rate) + (Workers × OT Hours × OT Rate).</div>
+    <div class="table-scroll">
+      <table class="line-table" id="laborTable">
+        <thead><tr>
+          <th style="min-width:130px">Worker / Role</th>
+          <th style="min-width:140px">Classification</th>
+          <th style="min-width:70px"># Workers</th>
+          <th style="min-width:80px">Hrs Each</th>
+          <th style="min-width:90px">Rate/hr ($)</th>
+          <th style="min-width:70px">OT Hrs</th>
+          <th style="min-width:90px">OT Rate ($)</th>
+          <th style="min-width:90px;text-align:right">Total</th>
+          <th style="min-width:36px"></th>
+        </tr></thead>
+        <tbody id="laborBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="addLabor()">+ Add Worker</button></div>
+    <div class="section-total"><span class="section-total-label">Labor Subtotal</span><span class="section-total-value" id="laborSubtotal">$0.00</span></div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(1)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(3)">Next: Equipment →</button></div>
+</div>
+
+<!-- PANEL 3: EQUIPMENT -->
+<div class="panel" id="panel3">
+  <div class="panel-title"><span>Equipment</span> &amp; Units</div>
+  <div class="panel-sub">Main HVAC units — brand, model, specs, quantity, and cost.</div>
+  <div class="card">
+    <div class="card-title">Equipment Line Items</div>
+    <div class="note-box"><strong>💡 Equipment markup explained</strong>The Markup % is the amount you add on top of your cost to cover overhead and profit. For example, a unit you buy for $1,000 with 20% markup bills the client $1,200. Industry standard markup on equipment ranges from 15–30%.</div>
+    <div class="table-scroll">
+      <table class="line-table" id="equipTable">
+        <thead><tr>
+          <th style="min-width:140px">Description</th>
+          <th style="min-width:110px">Brand / Model</th>
+          <th style="min-width:100px">SEER / BTU</th>
+          <th style="min-width:110px">Type</th>
+          <th style="min-width:60px">Qty</th>
+          <th style="min-width:100px">Unit Cost ($)</th>
+          <th style="min-width:80px">Markup %</th>
+          <th style="min-width:90px;text-align:right">Total</th>
+          <th style="min-width:36px"></th>
+        </tr></thead>
+        <tbody id="equipBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="addEquip()">+ Add Equipment</button></div>
+    <div class="section-total"><span class="section-total-label">Equipment Subtotal</span><span class="section-total-value" id="equipSubtotal">$0.00</span></div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(2)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(4)">Next: Materials →</button></div>
+</div>
+
+<!-- PANEL 4: MATERIALS -->
+<div class="panel" id="panel4">
+  <div class="panel-title"><span>Materials</span> &amp; Parts</div>
+  <div class="panel-sub">Ductwork, refrigerant, fittings, wiring, insulation — every part goes here.</div>
+  <div class="card">
+    <div class="card-title">Materials Line Items</div>
+    <div class="note-box"><strong>💡 Materials & markup tip</strong>Materials like refrigerant often carry a higher markup (100–150%) because of handling, safety, and certification costs. Standard parts like ductwork and insulation are typically marked up 20–30%. Use the quick-add buttons below for common items.</div>
+    <div class="table-scroll">
+      <table class="line-table" id="matTable">
+        <thead><tr>
+          <th style="min-width:150px">Item / Description</th>
+          <th style="min-width:110px">Category</th>
+          <th style="min-width:70px">Unit</th>
+          <th style="min-width:70px">Qty</th>
+          <th style="min-width:100px">Unit Cost ($)</th>
+          <th style="min-width:80px">Markup %</th>
+          <th style="min-width:90px;text-align:right">Total</th>
+          <th style="min-width:36px"></th>
+        </tr></thead>
+        <tbody id="matBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost" onclick="addMat()">+ Add Material</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Ductwork (flex, 10ft)')">+ Ductwork</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Refrigerant R-410A (lbs)')">+ Refrigerant</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Insulation (ft)')">+ Insulation</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Electrical Wire (ft)')">+ Wiring</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Copper Pipe (ft)')">+ Copper</button>
+      <button class="btn btn-secondary btn-sm" onclick="addMatPreset('Line Set (ft)')">+ Line Set</button>
+    </div>
+    <div class="section-total"><span class="section-total-label">Materials Subtotal</span><span class="section-total-value" id="matSubtotal">$0.00</span></div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(3)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(5)">Next: Fees →</button></div>
+</div>
+
+<!-- PANEL 5: FEES -->
+<div class="panel" id="panel5">
+  <div class="panel-title">Fees &amp; <span>Extras</span></div>
+  <div class="panel-sub">Toggle on any fees that apply to this job, enter the amount.</div>
+  <div class="card">
+    <div class="card-title">Standard Fees</div>
+    <div class="note-box"><strong>💡 About fees</strong>Toggle on only the fees that apply to this specific job. Each fee is added separately so your client can see exactly what they're paying for — this reduces pushback on final invoices.</div>
+    <div id="feesContainer"></div>
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="addCustomFee()">+ Add Custom Fee</button></div>
+    <div class="section-total"><span class="section-total-label">Fees Subtotal</span><span class="section-total-value" id="feesSubtotal">$0.00</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Warranty &amp; Guarantees</div>
+    <div class="note-box"><strong>💡 Warranty clarity</strong>Clearly stating warranties protects both you and the client. Parts warranties typically come from the manufacturer — you're just passing that through. Labor warranty is what you personally stand behind.</div>
+    <div class="form-grid cols3">
+      <div class="form-group"><label>Parts Warranty</label>
+        <select id="war_parts"><option>1 Year Manufacturer</option><option>2 Years Manufacturer</option><option>5 Years Manufacturer</option><option>10 Years Manufacturer</option><option>Limited Lifetime</option><option>No Warranty</option></select>
+      </div>
+      <div class="form-group"><label>Labor Warranty</label>
+        <select id="war_labor"><option>90 Days</option><option>1 Year</option><option>2 Years</option><option>3 Years</option><option>5 Years</option><option>No Warranty</option></select>
+      </div>
+      <div class="form-group"><label>Refrigerant Warranty</label>
+        <select id="war_ref"><option>1 Year</option><option>2 Years</option><option>Not Covered</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(4)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(6)">Next: Totals →</button></div>
+</div>
+
+<!-- PANEL 6: TOTALS -->
+<div class="panel" id="panel6">
+  <div class="panel-title">Totals &amp; <span>Terms</span></div>
+  <div class="panel-sub">Review pricing, set markup, tax, payment terms, and quote validity.</div>
+  <div class="totals-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">Pricing Summary</div>
+        <div class="note-box"><strong>💡 Overall markup vs line-item markup</strong>Line-item markups (on equipment/materials) cover the cost of those specific items. The Overall Markup here covers your business overhead — insurance, vehicle, office costs, etc. Tax is applied after all markups.</div>
+        <div class="totals-card">
+          <div class="totals-row"><span class="totals-label">Labor</span><span class="totals-value" id="sum_labor">$0.00</span></div>
+          <div class="totals-row"><span class="totals-label">Equipment</span><span class="totals-value" id="sum_equip">$0.00</span></div>
+          <div class="totals-row"><span class="totals-label">Materials</span><span class="totals-value" id="sum_mat">$0.00</span></div>
+          <div class="totals-row"><span class="totals-label">Fees &amp; Extras</span><span class="totals-value" id="sum_fees">$0.00</span></div>
+          <div class="markup-row"><label>Overall Markup / Overhead %</label><input type="number" id="overall_markup" value="0" min="0" max="100" oninput="calcTotals()"/><span style="color:var(--muted);font-size:13px">%</span></div>
+          <div class="markup-row"><label>Tax %</label><input type="number" id="tax_rate" value="0" min="0" max="25" oninput="calcTotals()"/><span style="color:var(--muted);font-size:13px">%</span></div>
+          <div class="totals-row grand"><span class="totals-label">TOTAL ESTIMATE</span><span class="totals-value" id="sum_grand">$0.00</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Payment Terms</div>
+        <div class="note-box"><strong>💡 Payment structure tip</strong>A 50% deposit protects you against material costs if a client cancels. For large commercial jobs, milestone-based billing is common. Net 30 is typical for clients with established credit accounts.</div>
+        <div class="form-group" style="margin-bottom:12px"><label>Payment Structure</label>
+          <select id="pay_structure"><option>50% Deposit / 50% on Completion</option><option>30% Deposit / 70% on Completion</option><option>100% on Completion</option><option>Progress Billing – Milestones</option><option>Net 30 Days</option><option>Net 15 Days</option><option>Custom</option></select>
+        </div>
+        <div class="form-group" style="margin-bottom:12px"><label>Accepted Payment Methods</label>
+          <select id="pay_methods"><option>Check, ACH, Credit Card</option><option>Check only</option><option>ACH / Wire Transfer</option><option>Cash or Check</option></select>
+        </div>
+        <div class="form-group"><label>Quote Valid For</label>
+          <select id="quote_validity"><option>15 Days</option><option>30 Days</option><option>45 Days</option><option>60 Days</option><option>90 Days</option></select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Additional Terms</div>
+        <div class="form-group"><label>Custom Terms (optional)</label><textarea id="custom_terms" placeholder="Any additional terms, exclusions, or special conditions for this specific job…" style="min-height:90px"></textarea></div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="goTo(5)">← Back</button><button class="btn btn-primary btn-lg" onclick="goTo(7)">Next: Policies →</button></div>
+</div>
+
+<!-- PANEL 7: POLICIES -->
+<div class="panel" id="panel7">
+  <div class="panel-title">Policies &amp; <span>Information</span></div>
+  <div class="panel-sub">Write your company policies in plain language. These appear in the quote document.</div>
+  <div class="card">
+    <div class="card-title">Standard Policy Sections</div>
+    <div class="note-box"><strong>💡 Why policies matter</strong>Clear written policies protect you legally and set expectations upfront. Clients who understand your process before signing are less likely to dispute charges or create problems mid-job. Write these in plain, friendly language — not legalese.</div>
+    <div class="policy-section" id="policySection"></div>
+    <div style="margin-top:12px"><button class="btn btn-ghost" onclick="addCustomPolicy()">+ Add Custom Policy Section</button></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn btn-secondary" onclick="goTo(6)">← Back</button>
+    <button class="btn btn-primary btn-lg" onclick="openPreview()">⬡ Generate Quote →</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- PREVIEW MODAL -->
+<div id="previewModal">
+  <div class="preview-wrap">
+    <div class="preview-toolbar">
+      <button class="btn btn-secondary btn-sm" onclick="closePreview()">✕ Close</button>
+      <button class="btn btn-primary btn-sm" id="pdfBtn" onclick="doPrint()">⬇️ Download PDF</button>
+    </div>
+    <div style="background:rgba(240,120,32,0.1);border:1px solid rgba(240,120,32,0.25);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--orange);margin-bottom:12px;">
+      <strong>Tap "Download PDF"</strong> to save the quote as a PDF file to your device.
+    </div>
+    <div id="quoteDoc" class="quote-doc"></div>
+  </div>
+</div>
+
+<script>
+let logoDataUrl=null,laborRows=[],equipRows=[],matRows=[],feeRows=[],policyRows=[],currentPanel=0;
+
+function goTo(n){
+  document.getElementById('panel'+currentPanel).classList.remove('active');
+  document.getElementById('tab'+currentPanel).classList.remove('active');
+  currentPanel=n;
+  document.getElementById('panel'+n).classList.add('active');
+  document.getElementById('tab'+n).classList.add('active');
+  calcTotals();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function handleLogo(input){
+  const file=input.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    logoDataUrl=e.target.result;
+    const img=document.getElementById('logoPreview');
+    img.src=logoDataUrl; img.style.display='block';
+    document.getElementById('logoPlaceholder').style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+
+window.addEventListener('load',()=>{
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('job_date').value=today;
+  const yr=new Date().getFullYear();
+  const mo=String(new Date().getMonth()+1).padStart(2,'0');
+  const rnd=Math.floor(Math.random()*900+100);
+  document.getElementById('job_number').value=`QT-${yr}-${mo}${rnd}`;
+  initFees(); initPolicies();
+  addLabor(); addEquip(); addMat();
+});
+
+// LABOR
+const laborClassifications=['Lead HVAC Tech','HVAC Technician','Helper / Apprentice','Sheet Metal Worker','Electrician','Pipefitter','Foreman','Project Manager'];
+function addLabor(role='',classification='HVAC Technician',workers=1,hours=8,rate=75,otHours=0,otRate=112.5){
+  const id='l'+Date.now()+Math.floor(Math.random()*9999);
+  laborRows.push({id});
+  const tbody=document.getElementById('laborBody');
+  const tr=document.createElement('tr'); tr.id='labor_'+id;
+  tr.innerHTML=`
+    <td><input type="text" placeholder="Lead Tech" value="${role}" style="min-width:110px"/></td>
+    <td><select style="min-width:130px">${laborClassifications.map(c=>`<option ${c===classification?'selected':''}>${c}</option>`).join('')}</select></td>
+    <td><input type="number" value="${workers}" min="1" oninput="calcLabor('${id}')" style="min-width:55px"/></td>
+    <td><input type="number" value="${hours}" min="0" step="0.5" oninput="calcLabor('${id}')" style="min-width:60px"/></td>
+    <td><input type="number" value="${rate}" min="0" step="0.5" oninput="calcLabor('${id}')" style="min-width:70px"/></td>
+    <td><input type="number" value="${otHours}" min="0" step="0.5" oninput="calcLabor('${id}')" style="min-width:55px"/></td>
+    <td><input type="number" value="${otRate}" min="0" step="0.5" oninput="calcLabor('${id}')" style="min-width:70px"/></td>
+    <td class="line-total" id="lt_${id}">$0.00</td>
+    <td><button class="btn-danger-ghost" onclick="removeRow('labor','${id}')">✕</button></td>`;
+  tbody.appendChild(tr); calcLabor(id);
+}
+function calcLabor(id){
+  const tr=document.getElementById('labor_'+id); if(!tr)return;
+  const inp=tr.querySelectorAll('input[type="number"]');
+  const w=parseFloat(inp[0].value)||0,h=parseFloat(inp[1].value)||0,r=parseFloat(inp[2].value)||0;
+  const oth=parseFloat(inp[3].value)||0,otr=parseFloat(inp[4].value)||0;
+  document.getElementById('lt_'+id).textContent='$'+((w*h*r)+(w*oth*otr)).toFixed(2);
+  calcTotals();
+}
+
+// EQUIPMENT
+const equipTypes=['Split AC','Heat Pump','Gas Furnace','Air Handler','Package Unit','Mini-Split','Chiller','Boiler','Thermostat','Other'];
+function addEquip(desc='',brand='',seer='',type='Split AC',qty=1,cost=0,markup=20){
+  const id='e'+Date.now()+Math.floor(Math.random()*9999);
+  equipRows.push({id});
+  const tbody=document.getElementById('equipBody');
+  const tr=document.createElement('tr'); tr.id='equip_'+id;
+  tr.innerHTML=`
+    <td><input type="text" placeholder="3-Ton Central AC" value="${desc}" style="min-width:120px"/></td>
+    <td><input type="text" placeholder="Carrier/24ACC" value="${brand}" style="min-width:90px"/></td>
+    <td><input type="text" placeholder="16 SEER" value="${seer}" style="min-width:80px"/></td>
+    <td><select style="min-width:90px">${equipTypes.map(t=>`<option ${t===type?'selected':''}>${t}</option>`).join('')}</select></td>
+    <td><input type="number" value="${qty}" min="1" oninput="calcEquip('${id}')" style="min-width:50px"/></td>
+    <td><input type="number" value="${cost}" min="0" step="0.01" oninput="calcEquip('${id}')" style="min-width:80px"/></td>
+    <td><input type="number" value="${markup}" min="0" max="200" oninput="calcEquip('${id}')" style="min-width:65px"/></td>
+    <td class="line-total" id="eq_${id}">$0.00</td>
+    <td><button class="btn-danger-ghost" onclick="removeRow('equip','${id}')">✕</button></td>`;
+  tbody.appendChild(tr); calcEquip(id);
+}
+function calcEquip(id){
+  const tr=document.getElementById('equip_'+id); if(!tr)return;
+  const inp=tr.querySelectorAll('input[type="number"]');
+  const qty=parseFloat(inp[0].value)||0,cost=parseFloat(inp[1].value)||0,mu=parseFloat(inp[2].value)||0;
+  document.getElementById('eq_'+id).textContent='$'+(qty*cost*(1+mu/100)).toFixed(2);
+  calcTotals();
+}
+
+// MATERIALS
+const matCategories=['Ductwork','Refrigerant','Insulation','Electrical','Copper/Pipe','Line Set','Fittings','Filters','Controls','Drainage','Other'];
+const matUnits=['ea','ft','lbs','in','sq ft','roll','box','set','pair','gal'];
+function addMat(desc='',cat='Ductwork',unit='ft',qty=1,cost=0,markup=25){
+  const id='m'+Date.now()+Math.floor(Math.random()*9999);
+  matRows.push({id});
+  const tbody=document.getElementById('matBody');
+  const tr=document.createElement('tr'); tr.id='mat_'+id;
+  tr.innerHTML=`
+    <td><input type="text" placeholder="Flex Duct 8in" value="${desc}" style="min-width:130px"/></td>
+    <td><select style="min-width:90px">${matCategories.map(c=>`<option ${c===cat?'selected':''}>${c}</option>`).join('')}</select></td>
+    <td><select style="min-width:60px">${matUnits.map(u=>`<option ${u===unit?'selected':''}>${u}</option>`).join('')}</select></td>
+    <td><input type="number" value="${qty}" min="0" step="0.5" oninput="calcMat('${id}')" style="min-width:60px"/></td>
+    <td><input type="number" value="${cost}" min="0" step="0.01" oninput="calcMat('${id}')" style="min-width:80px"/></td>
+    <td><input type="number" value="${markup}" min="0" max="300" oninput="calcMat('${id}')" style="min-width:65px"/></td>
+    <td class="line-total" id="mt_${id}">$0.00</td>
+    <td><button class="btn-danger-ghost" onclick="removeRow('mat','${id}')">✕</button></td>`;
+  tbody.appendChild(tr); calcMat(id);
+}
+function addMatPreset(desc){
+  const d={'Ductwork (flex, 10ft)':{cat:'Ductwork',unit:'ft',qty:10,cost:2.50,markup:25},'Refrigerant R-410A (lbs)':{cat:'Refrigerant',unit:'lbs',qty:5,cost:18,markup:150},'Insulation (ft)':{cat:'Insulation',unit:'ft',qty:20,cost:1.20,markup:25},'Electrical Wire (ft)':{cat:'Electrical',unit:'ft',qty:50,cost:0.85,markup:30},'Copper Pipe (ft)':{cat:'Copper/Pipe',unit:'ft',qty:20,cost:4.50,markup:25},'Line Set (ft)':{cat:'Line Set',unit:'ft',qty:25,cost:6.00,markup:25}};
+  const p=d[desc]||{}; addMat(desc,p.cat,p.unit,p.qty,p.cost,p.markup);
+}
+function calcMat(id){
+  const tr=document.getElementById('mat_'+id); if(!tr)return;
+  const inp=tr.querySelectorAll('input[type="number"]');
+  const qty=parseFloat(inp[0].value)||0,cost=parseFloat(inp[1].value)||0,mu=parseFloat(inp[2].value)||0;
+  document.getElementById('mt_'+id).textContent='$'+(qty*cost*(1+mu/100)).toFixed(2);
+  calcTotals();
+}
+
+// FEES
+const defaultFees=[
+  {label:'Permit Fees',sub:'City / municipality filing and inspection fees',amount:0,enabled:false},
+  {label:'Travel / Mobilization',sub:'Fuel, vehicle costs, and drive time to site',amount:0,enabled:false},
+  {label:'Equipment Disposal',sub:'Safe removal and recycling of old units',amount:0,enabled:false},
+  {label:'Crane / Lift Fee',sub:'Required for rooftop units or difficult access areas',amount:0,enabled:false},
+  {label:'Emergency Surcharge',sub:'After-hours, weekend, or emergency-response premium',amount:0,enabled:false},
+  {label:'Electrical Upgrade',sub:'Panel, breaker, or wiring upgrade required for install',amount:0,enabled:false},
+  {label:'Site Cleanup / Debris',sub:'Post-job material cleanup and hauling',amount:0,enabled:false},
+  {label:'Engineering / Load Calc',sub:'Manual J calculation or system design fee',amount:0,enabled:false},
+];
+function initFees(){
+  feeRows=defaultFees.map((f,i)=>({...f,id:'fee_'+i}));
+  renderFees();
+}
+function renderFees(){
+  document.getElementById('feesContainer').innerHTML=feeRows.map(f=>`
+    <div class="toggle-row">
+      <div style="flex:1;margin-right:12px">
+        <div class="toggle-label">${f.label}</div>
+        <div class="toggle-sub">${f.sub}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+        <input type="number" value="${f.amount}" min="0" step="0.01" id="fee_amt_${f.id}" placeholder="0.00" oninput="updateFeeAmount('${f.id}',this.value)" style="width:95px;${f.enabled?'':'opacity:0.4'}"/>
+        <label class="toggle"><input type="checkbox" ${f.enabled?'checked':''} onchange="toggleFee('${f.id}',this.checked)"/><span class="slider"></span></label>
+      </div>
+    </div>`).join('');
+  calcTotals();
+}
+function toggleFee(id,enabled){
+  const f=feeRows.find(r=>r.id===id); if(f)f.enabled=enabled;
+  const inp=document.getElementById('fee_amt_'+id); if(inp)inp.style.opacity=enabled?'1':'0.4';
+  calcTotals();
+}
+function updateFeeAmount(id,val){
+  const f=feeRows.find(r=>r.id===id); if(f)f.amount=parseFloat(val)||0;
+  calcTotals();
+}
+function addCustomFee(){
+  const label=prompt('Fee name:'); if(!label)return;
+  const amount=parseFloat(prompt('Amount ($):')||0);
+  feeRows.push({id:'fee_c'+Date.now(),label,sub:'Custom fee',amount,enabled:true});
+  renderFees();
+}
+
+// POLICIES
+const defaultPolicies=[
+  {title:'Scope & Change Orders',hint:'Explain how changes to the original scope are handled — pricing, approvals, communication.',text:'All work performed is based on the scope described in this quote. Any changes, additions, or unforeseen conditions discovered during work will be communicated to the client immediately. No additional work will be performed without written or verbal approval and a signed change order where required. Change orders are priced at the same labor and materials rates as this quote.'},
+  {title:'Client Access & Site Preparation',hint:'What does the client need to provide or prepare before your team shows up?',text:'The client is responsible for ensuring safe, unobstructed access to all work areas on the scheduled start date. All furniture, equipment, or personal items should be cleared from the work area. Failure to provide access may result in rescheduling fees. We are not responsible for damage to items left in or near the work area without prior notice.'},
+  {title:'Concealed Conditions',hint:'What happens if you find hidden problems (bad wiring, mold, structural issues) after starting work?',text:'This quote is based on visible and accessible conditions at the time of the site visit. If concealed conditions are discovered during work that affect the scope, safety, or cost of the project (such as deteriorated wiring, mold, asbestos, or structural issues), work will be paused and the client will be notified immediately with options. Additional costs for concealed conditions are not included in this quote.'},
+  {title:'Permits & Code Compliance',hint:'Who pulls permits? What codes do you follow?',text:'All work is performed in accordance with applicable local, state, and national codes including NFPA, ASHRAE, and the International Mechanical Code. Permit fees, where required, are listed separately in this quote or will be added if required by the jurisdiction. The contractor will obtain all required permits unless otherwise agreed in writing.'},
+  {title:'Payment & Collections',hint:'What happens if payment is late or the client disputes a charge?',text:'Payment is due per the terms stated in this quote. Late payments beyond the agreed terms are subject to a 1.5% monthly service charge. In the event of non-payment, the contractor reserves the right to place a mechanic\'s lien on the property. The client agrees that all disputes will first be attempted through good-faith communication before any legal action.'},
+  {title:'Warranty & Callbacks',hint:'What exactly is covered under your warranty? What is not covered?',text:'The labor warranty covers defects in workmanship only — we will return to repair any issue caused by our installation at no charge within the warranty period. The warranty does not cover damage caused by misuse, power surges, acts of nature, unauthorized third-party repairs, or failure to perform recommended maintenance. Equipment warranties are provided by the manufacturer and are not the contractor\'s responsibility beyond the facilitation of a warranty claim.'},
+  {title:'Limitation of Liability',hint:'Cap your exposure. What are you not responsible for?',text:'The contractor\'s total liability for any claim arising from this work shall not exceed the total contract value. The contractor is not liable for indirect, consequential, or incidental damages including but not limited to lost business, property damage caused by pre-existing conditions, or system failures due to utility outages or power surges.'},
+  {title:'Cancellation Policy',hint:'What happens if the client cancels after signing or after work starts?',text:'If the client cancels this agreement before work begins, the deposit is non-refundable if materials have already been ordered. If cancellation occurs after work has started, the client is responsible for payment of all work completed to date plus the cost of any materials ordered or installed. Cancellation must be submitted in writing.'},
+];
+function initPolicies(){
+  policyRows=defaultPolicies.map((p,i)=>({...p,id:'pol_'+i,open:false}));
+  renderPolicies();
+}
+function renderPolicies(){
+  const c=document.getElementById('policySection');
+  c.innerHTML=policyRows.map(p=>`
+    <div class="policy-block" id="pb_${p.id}">
+      <div class="policy-block-head" onclick="togglePolicy('${p.id}')">
+        <span class="policy-block-title">${p.title}</span>
+        <span class="policy-chevron ${p.open?'open':''}" id="chev_${p.id}">▼</span>
+      </div>
+      <div class="policy-block-body ${p.open?'open':''}" id="pbd_${p.id}">
+        <div class="policy-hint">✏️ ${p.hint}</div>
+        <textarea class="policy-textarea" id="ptxt_${p.id}" placeholder="Write your policy here in plain language…">${p.text||''}</textarea>
+      </div>
+    </div>`).join('');
+}
+function togglePolicy(id){
+  const p=policyRows.find(r=>r.id===id); if(!p)return;
+  p.open=!p.open;
+  document.getElementById('pbd_'+id).classList.toggle('open',p.open);
+  document.getElementById('chev_'+id).classList.toggle('open',p.open);
+}
+function addCustomPolicy(){
+  const title=prompt('Policy section title:'); if(!title)return;
+  policyRows.push({id:'pol_c'+Date.now(),title,hint:'Add your custom policy text below.',text:'',open:true});
+  renderPolicies();
+}
+
+// REMOVE ROW
+function removeRow(type,id){
+  const el=document.getElementById(type+'_'+id); if(el)el.remove();
+  calcTotals();
+}
+
+// TOTALS
+function calcTotals(){
+  let labor=0,equip=0,mat=0;
+  document.querySelectorAll('[id^="lt_"]').forEach(el=>labor+=parseFloat(el.textContent.replace('$',''))||0);
+  document.querySelectorAll('[id^="eq_"]').forEach(el=>equip+=parseFloat(el.textContent.replace('$',''))||0);
+  document.querySelectorAll('[id^="mt_"]').forEach(el=>mat+=parseFloat(el.textContent.replace('$',''))||0);
+  const fees=feeRows.filter(f=>f.enabled).reduce((s,f)=>s+(f.amount||0),0);
+  const markup=(parseFloat(document.getElementById('overall_markup')?.value)||0)/100;
+  const taxRate=(parseFloat(document.getElementById('tax_rate')?.value)||0)/100;
+  document.getElementById('laborSubtotal').textContent='$'+labor.toFixed(2);
+  document.getElementById('equipSubtotal').textContent='$'+equip.toFixed(2);
+  document.getElementById('matSubtotal').textContent='$'+mat.toFixed(2);
+  document.getElementById('feesSubtotal').textContent='$'+fees.toFixed(2);
+  const sub=labor+equip+mat+fees;
+  const muAmt=sub*markup;
+  const grand=(sub+muAmt)*(1+taxRate);
+  ['sum_labor','sum_equip','sum_mat','sum_fees'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent='$'+[labor,equip,mat,fees][i].toFixed(2);});
+  const ge=document.getElementById('sum_grand'); if(ge)ge.textContent='$'+grand.toFixed(2);
+}
+
+// CLEAR
+function clearAll(){if(!confirm('Start a new quote? All data will be lost.'))return; location.reload();}
+
+// HELPERS
+function v(id){return(document.getElementById(id)||{}).value||'';}
+
+// SHARE
+function shareWhatsApp(){
+  const num=v('job_number'),client=v('cl_name')||'Client',co=v('co_name')||'Us',grand=document.getElementById('sum_grand')?.textContent||'';
+  const msg=`Hi ${client},%0A%0APlease find your HVAC quote attached.%0A%0AQuote #: ${num}%0ACompany: ${co}%0ATotal Estimate: ${grand}%0A%0AKindly review and let us know if you have any questions.%0A%0AThank you!`;
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+function shareGmail(){
+  const num=v('job_number'),client=v('cl_name')||'',co=v('co_name')||'',grand=document.getElementById('sum_grand')?.textContent||'';
+  const sub=encodeURIComponent(`HVAC Quote #${num} from ${co}`);
+  const body=encodeURIComponent(`Dear ${client},\n\nPlease find your HVAC estimate details below.\n\nQuote #: ${num}\nCompany: ${co}\nTotal Estimate: ${grand}\n\nTo view the full quote, please open the attached PDF.\n\nThank you for your business!\n\n${co}`);
+  window.open(`mailto:${v('cl_email')}?subject=${sub}&body=${body}`,'_blank');
+}
+
+// DOWNLOAD PDF — works on iOS, Android, and desktop
+async function doPrint(){
+  const btn = document.getElementById('pdfBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  try {
+    const el = document.getElementById('quoteDoc');
+    if(!el.innerHTML.trim()) el.innerHTML = buildQuoteHTML();
+    const canvas = await html2canvas(el, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const {jsPDF} = window.jspdf;
+    const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * pageW) / canvas.width;
+    let y = 0;
+    let remaining = imgH;
+    let page = 0;
+    while(remaining > 0){
+      if(page > 0) pdf.addPage();
+      pdf.addImage(imgData,'JPEG', 0, -y, imgW, imgH);
+      y += pageH;
+      remaining -= pageH;
+      page++;
+    }
+    const clientName = document.getElementById('cl_name') ? (document.getElementById('cl_name').value || 'Quote') : 'Quote';
+    pdf.save('HVAC_Quote_' + clientName.replace(/\s+/g,'_') + '.pdf');
+  } catch(e){
+    alert('PDF generation failed: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '⬇️ Download PDF';
+}
+
+// PREVIEW
+function openPreview(){
+  calcTotals();
+  document.getElementById('quoteDoc').innerHTML=buildQuoteHTML();
+  document.getElementById('previewModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closePreview(){
+  document.getElementById('previewModal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function buildQuoteHTML(){
+  // Collect data
+  const laborData=[];
+  document.querySelectorAll('#laborBody tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input,select');
+    if(inp.length<7)return;
+    const role=inp[0].value||inp[1].value,cls=inp[1].value;
+    const w=parseFloat(inp[2].value)||0,h=parseFloat(inp[3].value)||0,r=parseFloat(inp[4].value)||0;
+    const oth=parseFloat(inp[5].value)||0,otr=parseFloat(inp[6].value)||0;
+    laborData.push({role:role||cls,cls,w,h,r,oth,otr,total:(w*h*r)+(w*oth*otr)});
+  });
+  const equipData=[];
+  document.querySelectorAll('#equipBody tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input,select');
+    if(inp.length<5)return;
+    const desc=inp[0].value,brand=inp[1].value,seer=inp[2].value;
+    const qty=parseFloat(inp[3].value)||0,cost=parseFloat(inp[4].value)||0,mu=parseFloat(inp[5].value)||0;
+    equipData.push({desc,brand,seer,qty,cost,mu,total:qty*cost*(1+mu/100)});
+  });
+  const matData=[];
+  document.querySelectorAll('#matBody tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input,select');
+    if(inp.length<4)return;
+    const desc=inp[0].value,cat=inp[1].value,unit=inp[2].value;
+    const qty=parseFloat(inp[3].value)||0,cost=parseFloat(inp[4].value)||0,mu=parseFloat(inp[5].value)||0;
+    matData.push({desc,cat,unit,qty,cost,mu,total:qty*cost*(1+mu/100)});
+  });
+  const feesActive=feeRows.filter(f=>f.enabled&&f.amount>0);
+
+  const labor=laborData.reduce((s,r)=>s+r.total,0);
+  const equip=equipData.reduce((s,r)=>s+r.total,0);
+  const mat=matData.reduce((s,r)=>s+r.total,0);
+  const fees=feesActive.reduce((s,f)=>s+f.amount,0);
+  const markup=(parseFloat(document.getElementById('overall_markup')?.value)||0)/100;
+  const taxRate=(parseFloat(document.getElementById('tax_rate')?.value)||0)/100;
+  const sub=labor+equip+mat+fees;
+  const muAmt=sub*markup;
+  const taxAmt=(sub+muAmt)*taxRate;
+  const grand=sub+muAmt+taxAmt;
+
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const logoHTML=logoDataUrl?`<img src="${logoDataUrl}" style="max-height:55px;max-width:160px;object-fit:contain;"/>`:`<div class="quote-logo-text">${v('co_name')||'Your Company'}</div>`;
+
+  const startDate=v('job_start')?new Date(v('job_start')+'T12:00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'TBD';
+  const endDate=v('job_end')?new Date(v('job_end')+'T12:00:00').toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}):'TBD';
+
+  // Collect policies
+  const policyHTML=policyRows.map(p=>{
+    const el=document.getElementById('ptxt_'+p.id);
+    const txt=el?el.value.trim():'';
+    if(!txt)return '';
+    return `<div class="quote-section-head">${p.title}</div><div class="quote-scope">${txt}</div>`;
+  }).filter(Boolean).join('');
+
+  return `
+  <div class="quote-header">
+    <div class="quote-logo-area">${logoHTML}
+      <div class="quote-co-details">${v('co_address')?v('co_address')+'<br>':''} ${v('co_phone')||''} ${v('co_email')?'· '+v('co_email'):''}<br>${v('co_license')?'Lic: '+v('co_license'):''} ${v('co_insurance')?'· Ins: '+v('co_insurance'):''}</div>
+    </div>
+    <div class="quote-title-block">
+      <h1>Estimate</h1>
+      <div class="quote-meta-item">Quote # <strong>${v('job_number')}</strong></div>
+      <div class="quote-meta-item">Date: <strong>${today}</strong></div>
+      <div class="quote-meta-item">Type: <strong>${v('job_type')||'HVAC Service'}</strong></div>
+    </div>
+  </div>
+  <div class="quote-client-bar">
+    <div><div class="qcb-label">Prepared For</div><div class="qcb-value">${v('cl_name')||'—'}</div></div>
+    <div><div class="qcb-label">Contact</div><div class="qcb-value">${v('cl_contact')||'—'}</div></div>
+    <div><div class="qcb-label">Job Site</div><div class="qcb-value">${v('job_site')||v('cl_billing')||'—'}</div></div>
+    <div><div class="qcb-label">Timeline</div><div class="qcb-value">${startDate} → ${endDate}</div></div>
+  </div>
+  <div class="quote-body">
+    ${v('job_scope')?`<div class="quote-section-head">Scope of Work</div><div class="quote-scope">${v('job_scope')}</div>`:''}
+    <div class="quote-section-head">Labor</div>
+    <table class="qt"><thead><tr><th>Worker/Role</th><th>Classification</th><th class="num"># Workers</th><th class="num">Reg. Hrs</th><th class="num">Rate/hr</th><th class="num">Overtime</th><th class="num">Total</th></tr></thead>
+    <tbody>${laborData.length?laborData.map(r=>`<tr><td>${r.role}</td><td>${r.cls}</td><td class="num">${r.w}</td><td class="num">${r.h} hrs</td><td class="num">$${r.r.toFixed(2)}</td><td class="num">${r.oth>0?r.oth+' hrs @ $'+r.otr.toFixed(2):'—'}</td><td class="num">$${r.total.toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:#aaa;font-style:italic">No labor items</td></tr>'}</tbody></table>
+    <div class="quote-section-head">Equipment</div>
+    <table class="qt"><thead><tr><th>Description</th><th>Brand/Model</th><th>SEER/BTU</th><th class="num">Qty</th><th class="num">Unit Cost</th><th class="num">Markup</th><th class="num">Total</th></tr></thead>
+    <tbody>${equipData.length?equipData.map(r=>`<tr><td>${r.desc}</td><td>${r.brand}</td><td>${r.seer}</td><td class="num">${r.qty}</td><td class="num">$${r.cost.toFixed(2)}</td><td class="num">${r.mu}%</td><td class="num">$${r.total.toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:#aaa;font-style:italic">No equipment items</td></tr>'}</tbody></table>
+    <div class="quote-section-head">Materials &amp; Parts</div>
+    <table class="qt"><thead><tr><th>Item</th><th>Category</th><th class="num">Qty</th><th class="num">Unit Cost</th><th class="num">Markup</th><th class="num">Total</th></tr></thead>
+    <tbody>${matData.length?matData.map(r=>`<tr><td>${r.desc}</td><td>${r.cat}</td><td class="num">${r.qty} ${r.unit}</td><td class="num">$${r.cost.toFixed(2)}</td><td class="num">${r.mu}%</td><td class="num">$${r.total.toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="6" style="color:#aaa;font-style:italic">No materials</td></tr>'}</tbody></table>
+    ${feesActive.length?`<div class="quote-section-head">Fees &amp; Additional Charges</div><table class="qt"><thead><tr><th>Fee</th><th>Details</th><th class="num">Amount</th></tr></thead><tbody>${feesActive.map(f=>`<tr><td>${f.label}</td><td>${f.sub}</td><td class="num">$${f.amount.toFixed(2)}</td></tr>`).join('')}</tbody></table>`:''}
+    <div class="qt-totals">
+      <div class="qt-total-row"><span class="lbl">Labor</span><span class="val">$${labor.toFixed(2)}</span></div>
+      <div class="qt-total-row"><span class="lbl">Equipment</span><span class="val">$${equip.toFixed(2)}</span></div>
+      <div class="qt-total-row"><span class="lbl">Materials</span><span class="val">$${mat.toFixed(2)}</span></div>
+      ${fees>0?`<div class="qt-total-row"><span class="lbl">Fees</span><span class="val">$${fees.toFixed(2)}</span></div>`:''}
+      <div class="qt-total-row"><span class="lbl">Subtotal</span><span class="val">$${sub.toFixed(2)}</span></div>
+      ${muAmt>0?`<div class="qt-total-row"><span class="lbl">Overhead (${Math.round(markup*100)}%)</span><span class="val">$${muAmt.toFixed(2)}</span></div>`:''}
+      ${taxAmt>0?`<div class="qt-total-row"><span class="lbl">Tax (${(taxRate*100).toFixed(1)}%)</span><span class="val">$${taxAmt.toFixed(2)}</span></div>`:''}
+      <div class="qt-grand"><span>TOTAL ESTIMATE</span><span class="val">$${grand.toFixed(2)}</span></div>
+    </div>
+    <div class="quote-section-head" style="margin-top:24px">Warranty &amp; Guarantees</div>
+    <table class="qt"><tbody>
+      <tr><td style="font-weight:600">Parts / Equipment</td><td>${v('war_parts')||'5 Years Manufacturer'}</td></tr>
+      <tr><td style="font-weight:600">Labor</td><td>${v('war_labor')||'1 Year'}</td></tr>
+      <tr><td style="font-weight:600">Refrigerant</td><td>${v('war_ref')||'1 Year'}</td></tr>
+    </tbody></table>
+    ${policyHTML}
+    <div class="quote-validity">⚠ This quote is valid for <strong>${v('quote_validity')||'30 Days'}</strong> from the date issued.</div>
+    <div class="quote-terms">
+      <strong>Payment Terms:</strong> ${v('pay_structure')||'50% Deposit / 50% on Completion'} &nbsp;·&nbsp; ${v('pay_methods')||'Check, ACH, Credit Card'}<br><br>
+      ${v('custom_terms')?`<strong>Additional Terms:</strong> ${v('custom_terms')}<br><br>`:''}
+      <strong>Property:</strong> ${v('job_property')||'Residential'} ${v('job_sqft')?'· '+v('job_sqft')+' sq ft':''}
+    </div>
+    <div class="quote-sig">
+      <div><div class="sig-line"></div><div class="sig-label">Contractor Signature &amp; Date — ${v('co_name')||'Contractor'}</div></div>
+      <div><div class="sig-line"></div><div class="sig-label">Client Acceptance Signature &amp; Date — ${v('cl_name')||'Client'}</div></div>
+    </div>
+  </div>
+  <div class="quote-footer">${v('co_name')||'HVAC Contractor'} · ${v('co_phone')||''} · ${v('co_email')||''} · Quote #${v('job_number')} · ${today}</div>`;
+}
+</script>
+</body>
+</html>
